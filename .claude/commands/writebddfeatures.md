@@ -7,7 +7,7 @@ description: Read ADO User Stories, delegate BDD planning/authoring to bdd-agent
 **Sub-project paths:** Resolve `{E2E_DIR}` from root `CLAUDE.md` -> `# Repos` table before running any shell commands or constructing file paths. Check the `Optional` column - **skip all steps for any sub-project marked `Optional: Yes` that does not exist on disk**. Pass resolved values and optional flags when invoking sub-agents. Defaults: `be-app`, `fe-app`, `e2e-test`.
 
 You are orchestrating BDD feature file generation for `{ADO_DISPLAY_NAME}` User Stories.
-Delegate BDD analysis and feature authoring to **bdd-agent**. This command owns all user approval gates and all final file writes.
+Delegate BDD analysis and feature authoring to **bdd-agent**, a senior BDD test engineer agent. This command owns all user approval gates and all final file writes.
 
 > WARNING: **This command requires `{E2E_DIR}`.** If `{E2E_DIR}` is `Optional: Yes` in CLAUDE.md and does not exist on disk, stop and output:
 > "E2E tests directory not present - /writebddfeatures skipped."
@@ -62,20 +62,25 @@ Run this again? (yes/no)
 
 There must be exactly one approval owner: this command.
 
-**bdd-agent** returns skill output and a handoff block. Display that output verbatim, then append this command's approval prompt. Do not ask for approval inside bdd-agent, and do not let bdd-agent write final `.feature` files.
+There must also be exactly one skill invoker: **bdd-agent**.
+
+This command must not read, invoke, summarize, or inspect `.claude/skills/*` directly. It only sends invocation context to **bdd-agent**, displays the returned output verbatim, and appends this command's approval prompt.
+
+**bdd-agent** applies the required skill internally and returns its phase output plus a handoff block. Do not ask for approval inside bdd-agent, and do not let bdd-agent write final `.feature` files.
 
 ---
 
 ## Step 2 - Test Layering Analysis + Approval
 
-STOP: ENVELOPE ONLY - Pass ONLY the structured block below to **bdd-agent**. Do NOT add instructions, phase descriptions, output format requirements, module tag hints, or any other text.
+STOP: AGENT INVOCATION ONLY - Pass ONLY the structured context below to **bdd-agent**. Do NOT add extra skill instructions, phase descriptions, output format requirements, module tag hints, or any other text.
 
-Invoke **bdd-agent** Phase 1 with this envelope and nothing else:
+Invoke **bdd-agent** for Phase 1 with this context and nothing else:
 
 ```yaml
 phase: 1
 E2E_DIR: {resolved E2E_DIR}
 story: {already loaded story payload}
+goal: design layered test points from this user story and return the complete layering analysis for approval
 ```
 
 STOP: VERBATIM PASS-THROUGH - NO EXCEPTIONS:
@@ -93,12 +98,13 @@ Output the bdd-agent result as raw Markdown (no blockquote wrapping) so that tab
 
 Wait for user response:
 - **approve** -> proceed to Step 3 with the confirmed Test Point List
-- **revise** -> re-invoke bdd-agent Phase 1 with this envelope:
+- **revise** -> re-invoke bdd-agent Phase 1 with this context:
 
   ```yaml
   phase: 1
   E2E_DIR: {resolved E2E_DIR}
   story: {already loaded story payload}
+  goal: revise the complete layering analysis using the user's requested changes
   revisionInstructions: {user's exact instructions}
   previousOutput: {verbatim Phase 1 output just displayed}
   ```
@@ -110,15 +116,16 @@ Wait for user response:
 
 ## Step 3 - BDD Feature Authoring + Approval
 
-STOP: ENVELOPE ONLY - Pass ONLY the structured block below to **bdd-agent**. Do NOT add instructions, phase descriptions, output format requirements, or any other text.
+STOP: AGENT INVOCATION ONLY - Pass ONLY the structured context below to **bdd-agent**. Do NOT add extra skill instructions, phase descriptions, output format requirements, or any other text.
 
-Invoke **bdd-agent** Phase 2 with this envelope and nothing else:
+Invoke **bdd-agent** for Phase 2 with this context and nothing else:
 
 ```yaml
 phase: 2
 E2E_DIR: {resolved E2E_DIR}
 story: {already loaded story payload}
 approvedTestPoints: {approved Phase 1 output or extracted Test Point List - verbatim from Step 2}
+goal: author BDD feature content from the approved test points and return the complete feature authoring result for approval
 ```
 
 STOP: VERBATIM PASS-THROUGH - NO EXCEPTIONS:
@@ -134,13 +141,14 @@ bdd-agent returns the **complete** result. Output it as raw Markdown (no blockqu
 
 Wait for user response:
 - **approve** -> proceed to Step 4
-- **revise** -> re-invoke bdd-agent Phase 2 with this envelope:
+- **revise** -> re-invoke bdd-agent Phase 2 with this context:
 
   ```yaml
   phase: 2
   E2E_DIR: {resolved E2E_DIR}
   story: {already loaded story payload}
   approvedTestPoints: {approved Phase 1 output or extracted Test Point List - verbatim from Step 2}
+  goal: revise the complete BDD feature authoring result using the user's requested changes
   revisionInstructions: {user's exact instructions}
   previousOutput: {verbatim Phase 2 output just displayed}
   ```
