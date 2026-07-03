@@ -266,68 +266,22 @@ Before returning output, verify:
 
 ## Output Contract
 
-Return raw Markdown only. Do not wrap the whole response in a code block.
+Do not hand-write final Markdown tables. Produce structured JSON, then use the renderer script to create the review output.
 
-Use this exact structure:
+1. Write Phase 2 data to a temporary JSON file using the schema exposed by the renderer.
+2. Run:
 
-````markdown
-# BDD Feature Generation Result
+   ```bash
+   python .claude/scripts/render_bdd_artifact.py phase2 {inputJsonPath} .ai-sdlc/workflow-state/{storyId}
+   ```
 
-## Feature Files To Write
+3. Read `.ai-sdlc/workflow-state/{storyId}/bdd-feature-authoring.md`.
+4. Return that Markdown verbatim.
 
-* features/api/{businessDomain}/{featureName}.feature -> mode: create | append | not generated | <N> scenarios (@smoke: N, @regression: N)
-* features/ui/{businessDomain}/{featureName}.feature -> mode: create | append | not generated | <N> scenarios (@smoke: N, @regression: N)
+Use this command if you need the exact field names:
 
-## Lower-Layer Test Points Not Authored As Feature Files
-
-| TP ID | Layer | Summary | ACs Covered | Reason |
-|-------|-------|---------|-------------|--------|
-| TP-UIC-001 | UI Component | ... | AC1 | Covered by component-level test, not BDD feature file |
-| TP-UII-001 | UI Integration | ... | AC2 | Covered by integration-level test, not BDD feature file |
-
-## API Feature Content
-
-```gherkin
-{complete API feature content for create mode; new scenario/scenario outline blocks only for append mode; omit this block when API mode is not generated}
+```bash
+python .claude/scripts/render_bdd_artifact.py schema phase2
 ```
-
-## UI Feature Content
-
-```gherkin
-{complete UI feature content for create mode; new scenario/scenario outline blocks only for append mode; omit this block when UI mode is not generated}
-```
-
-## AC Coverage Matrix
-
-| AC # | Summary | Covered By |
-|------|---------|------------|
-| AC1  | ...     | @TC-MOD-API-001, @TC-MOD-UI-001, TP-UIC-001 |
-
-## Uncovered ACs
-
-- [List uncovered ACs with reason, or "None"]
-
-## Authoring Notes
-
-- Snippet catalogs used:
-  - API: [path or "not found"]
-  - UI/E2E: [path or "not found"]
-- New/unmatched step wording:
-  - [List new steps, or "None"]
-- File mode decisions / assumptions:
-  - [List file mode decisions, assumptions, existing-file dependencies, or "None"]
-
-## Phase 2 Summary
-
-- Feature files to create: N
-- Feature files to append: N
-- API scenarios: N
-- UI/E2E scenarios: N
-- UI Component test points not authored: N
-- UI Integration test points not authored: N
-- Smoke scenarios: N
-- Regression scenarios: N
-- Recommended next step: approve this feature content or request revisions.
-````
 
 Do not include an approval menu. `writebddfeatures` owns approval.

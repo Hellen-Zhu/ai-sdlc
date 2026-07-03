@@ -45,14 +45,15 @@ On a fresh run:
 
 ## Revision Run
 
-If `revisionInstructions` and `previousOutput` are present:
+If `revisionInstructions` are present:
 
-1. Use `previousOutput` as the base.
-2. If `previousArtifactPath` is present, read that artifact as the source of truth.
-3. Apply only the user's requested changes.
-4. Preserve unaffected TP IDs, tags, priorities, layers, and AC mappings.
-5. Overwrite the local Phase 1 artifact with the complete updated content.
-6. Return a draft summary with artifact paths, not a diff.
+1. Prefer `previousArtifactPath` and read the existing `test-layer-analysis.json` as the source of truth.
+2. Use `previousOutput` only as fallback context when no artifact path is available.
+3. Apply only the user's requested changes to the JSON structure.
+4. Preserve unaffected TP IDs, tags, priorities, layers, AC mappings, assumptions, risks, and rationale.
+5. Increment `revisionCount`.
+6. Overwrite the same `test-layer-analysis.json` artifact path unless the caller explicitly requests a new artifact.
+7. Return only a short revised review summary, not the full JSON and not a diff.
 
 ## Local Artifact Rules
 
@@ -67,36 +68,15 @@ Use this directory:
 Use these files:
 
 ```text
-test-layer-analysis.md
 test-layer-analysis.json
 ```
 
-`test-layer-analysis.md` must contain the full Markdown output contract below.
+`test-layer-analysis.json` is the only Phase 1 source-of-truth artifact. Do not create a Markdown artifact for Phase 1.
 
-`test-layer-analysis.json` must contain structured data sufficient for Phase 2:
+To inspect the expected JSON shape, run:
 
-```json
-{
-  "storyId": "...",
-  "title": "...",
-  "moduleOrDomain": "...",
-  "revisionCount": 0,
-  "artifactVersion": "phase-1",
-  "testPoints": [
-    {
-      "id": "TP-API-001",
-      "layer": "API",
-      "type": "positive",
-      "priority": "smoke",
-      "summary": "...",
-      "acsCovered": ["AC1"],
-      "tags": ["@api", "@smoke", "@positive"]
-    }
-  ],
-  "coverageMatrix": [],
-  "uncoveredAcs": [],
-  "risksAndGaps": []
-}
+```bash
+python .claude/scripts/render_bdd_artifact.py schema phase1
 ```
 
 On revision, increment `revisionCount` if an existing JSON artifact is available. If not available, set `revisionCount` to `1`.
@@ -233,103 +213,37 @@ Before returning output, verify:
 
 ## Output Contract
 
-Save the full artifact locally, then return raw Markdown only. Do not wrap the whole response in a code block.
+Produce structured JSON, save it with the renderer script, then return a short review summary directly in your response.
 
-The returned response should be a draft summary and artifact pointer, not the full artifact. Use this exact structure:
+1. Write Phase 1 data to a temporary JSON file using the schema exposed by the renderer.
+2. Run:
 
-```markdown
-# Test Layering Draft Summary
+   ```bash
+   python .claude/scripts/render_bdd_artifact.py phase1 {inputJsonPath} .ai-sdlc/workflow-state/{storyId}
+   ```
 
-## Artifact
+3. Return a short review summary using this format:
 
-- Markdown: `.ai-sdlc/workflow-state/{storyId}/test-layer-analysis.md`
-- JSON: `.ai-sdlc/workflow-state/{storyId}/test-layer-analysis.json`
+   ```markdown
+   # Test Layering Draft Summary
 
-## Summary
+   - JSON artifact: `.ai-sdlc/workflow-state/{storyId}/test-layer-analysis.json`
+   - API test points: N
+   - UI Component test points: N
+   - UI Integration test points: N
+   - UI/E2E test points: N
+   - Smoke test points: N
+   - Regression test points: N
+   - Uncovered ACs: N
 
-- Story ID:
-- Title:
-- API test points: N
-- UI Component test points: N
-- UI Integration test points: N
-- UI/E2E test points: N
-- Smoke test points: N
-- Regression test points: N
-- Uncovered ACs: N
+   Review highlights:
+   - ...
+   ```
 
-## Review Highlights
+Use this command if you need the exact field names:
 
-- [Highest-value layering decisions]
-- [Important assumptions]
-- [Risks or gaps]
-
-## Next Step
-
-Review the artifact, then approve this layering plan or request revisions.
-```
-
-The saved `test-layer-analysis.md` artifact must use this exact structure:
-
-
-```markdown
-# Test Layering Analysis
-
-## Story Summary
-
-- Story ID:
-- Title:
-- Module / Domain:
-- Primary Actor:
-- Source:
-
-## Assumptions
-
-- [List assumptions, or "None"]
-
-## Acceptance Criteria
-
-| AC # | Acceptance Criterion | Notes |
-|------|----------------------|-------|
-| AC1  | ...                  | ...   |
-
-## Layered Test Points
-
-| TP ID | Layer | Type | Priority | Summary | ACs Covered | Tags |
-|-------|-------|------|----------|---------|-------------|------|
-| TP-API-001 | API | positive | smoke | ... | AC1 | @api @smoke @positive |
-| TP-UIC-001 | UI Component | positive | regression | ... | AC1 | @ui-component @regression @positive |
-| TP-UII-001 | UI Integration | negative | regression | ... | AC2 | @ui-integration @regression @negative |
-| TP-E2E-001 | UI/E2E | positive | smoke | ... | AC1 | @playwright @smoke @positive |
-
-## Layering Rationale
-
-| TP ID | Why This Layer | Why Not Higher / Lower |
-|-------|----------------|------------------------|
-| TP-API-001 | ... | ... |
-
-## AC Coverage Matrix
-
-| AC # | Covered By | Coverage Notes |
-|------|------------|----------------|
-| AC1  | TP-API-001, TP-UIC-001, TP-E2E-001 | ... |
-
-## Uncovered ACs
-
-- [List uncovered ACs with reason, or "None"]
-
-## Risks And Gaps
-
-- [List risks, dependencies, missing data, environment constraints, or "None"]
-
-## Phase 1 Summary
-
-- API test points: N
-- UI Component test points: N
-- UI Integration test points: N
-- UI/E2E test points: N
-- Smoke test points: N
-- Regression test points: N
-- Recommended next step: approve this layering plan or request revisions.
+```bash
+python .claude/scripts/render_bdd_artifact.py schema phase1
 ```
 
 Do not include an approval menu. `writebddfeatures` owns approval.
