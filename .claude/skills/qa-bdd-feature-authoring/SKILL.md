@@ -38,14 +38,15 @@ On a fresh run:
    - UI Component: test points tagged `@ui-component` or layer `UI Component`
    - UI Integration: test points tagged `@ui-integration` or layer `UI Integration`
    - UI/E2E: test points tagged `@playwright`, layer `UI/E2E`, or layer `E2E`
-3. Determine target feature identity for each BDD-generated layer: API and UI/E2E.
-4. Determine file mode for each BDD target feature:
+3. Generate or read the API/UI snippet catalogs.
+4. Determine target feature identity for each BDD-generated layer: API and UI/E2E.
+5. Determine file mode for each BDD target feature:
    - `create` when the feature file should be newly created
    - `append` when a suitable feature file already exists
    - `not generated` when there are no approved test points for that layer
-5. Author Gherkin for each generated layer.
-6. Build an AC coverage matrix from approved test points.
-7. Return the complete Phase 2 output.
+6. Author Gherkin for each generated layer, reusing matching snippets wherever possible.
+7. Build an AC coverage matrix from approved test points.
+8. Return the complete Phase 2 output.
 
 ## Revision Run
 
@@ -101,6 +102,76 @@ Assign stable TC IDs:
 Use the module tag or story module to derive `<MODULE>`. Normalize to uppercase alphanumeric. If module is unknown, use `MOD`.
 
 Keep TC IDs stable during revision. Add new IDs at the end of the relevant sequence.
+
+## Snippet Reuse Rules
+
+Before authoring Gherkin, generate or read the snippet catalog for both API and UI/E2E layers.
+
+### Generate Catalogs
+
+If `snippet_index_generate.sh` exists, run it before authoring.
+
+Look for the script in this order:
+
+```text
+{E2E_DIR}/snippet_index_generate.sh
+{E2E_DIR}/scripts/snippet_index_generate.sh
+./snippet_index_generate.sh
+./scripts/snippet_index_generate.sh
+```
+
+Use the project's script contract if documented. If no contract is documented, run the script from its containing directory with Bash:
+
+```bash
+bash snippet_index_generate.sh
+```
+
+If the script supports explicit layer flags or output paths, generate both API and UI catalogs. Do not guess destructive flags.
+
+### Find Catalogs
+
+After running the script, or if the script is absent, search for snippet catalogs under `{E2E_DIR}` and the project root.
+
+Prefer files whose names or paths indicate:
+
+- `api` + `snippet`
+- `ui` + `snippet`
+- `e2e` + `snippet`
+- `catalog`
+- `snippet_index`
+
+Read the relevant catalog(s) before writing Gherkin.
+
+### Reuse Policy
+
+Prefer existing snippets over new step wording.
+
+For each intended Given/When/Then step:
+
+1. Search the relevant layer catalog first:
+   - API scenarios use the API snippet catalog.
+   - UI/E2E scenarios use the UI/E2E snippet catalog.
+2. Reuse an existing snippet when its business meaning matches the intended step.
+3. Adapt only parameter values, quoted text, identifiers, and examples.
+4. Preserve snippet wording, tense, and placeholder style as much as possible.
+5. Do not create a semantically duplicate step with different wording.
+6. Create new wording only when no suitable snippet exists.
+
+When creating new wording:
+
+- keep it business-readable
+- keep it general enough to become reusable
+- avoid implementation details
+- note it in `Authoring Notes` as a new/unmatched step
+
+### Snippet Traceability
+
+In `Authoring Notes`, include:
+
+- snippet catalog paths used
+- whether API snippets were generated/read
+- whether UI/E2E snippets were generated/read
+- any scenarios or steps that required new wording because no matching snippet existed
 
 ## Gherkin Rules
 
@@ -238,7 +309,13 @@ Use this exact structure:
 
 ## Authoring Notes
 
-- [List file mode decisions, assumptions, existing-file dependencies, or "None"]
+- Snippet catalogs used:
+  - API: [path or "not found"]
+  - UI/E2E: [path or "not found"]
+- New/unmatched step wording:
+  - [List new steps, or "None"]
+- File mode decisions / assumptions:
+  - [List file mode decisions, assumptions, existing-file dependencies, or "None"]
 
 ## Phase 2 Summary
 
