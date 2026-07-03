@@ -80,14 +80,14 @@ Invoke **bdd-agent** for Phase 1 with this context and nothing else:
 phase: 1
 E2E_DIR: {resolved E2E_DIR}
 story: {already loaded story payload}
-goal: design layered test points from this user story, save the Phase 1 artifact, and return a draft summary plus artifact paths for approval
+goal: design layered test points from this user story, save the Phase 1 JSON artifact, and return an approval-ready review summary with proposed test points, layer decisions, assumptions, risks, and artifact path
 ```
 
 STOP: VERBATIM PASS-THROUGH - NO EXCEPTIONS:
 Copy the bdd-agent output exactly as received. Do NOT reformat, condense, summarize, reorder, or add any text before the approval prompt.
 If you find yourself rewriting any sentence, stop and paste the original.
 
-Display bdd-agent **Complete Output** to the user, including the draft summary and local artifact path, followed by this command's approval prompt.
+Display bdd-agent **Complete Output** to the user, including the approval-ready layering summary and local artifact path, followed by this command's approval prompt.
 
 Output the bdd-agent result as raw Markdown (no blockquote wrapping) so that tables render correctly.
 

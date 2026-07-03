@@ -22,7 +22,7 @@ Use the context provided by `bdd-agent`:
 - `revisionInstructions`, if present
 - `previousOutput`, if present
 
-Treat `approvedTestPoints` or `layeringArtifactPath` as the scope boundary. Prefer `layeringArtifactPath` when provided, and read the Phase 1 JSON/Markdown artifact before authoring. Do not add, remove, or relayer test points unless the revision instructions explicitly request it.
+Treat `approvedTestPoints` or `layeringArtifactPath` as the scope boundary. Prefer `layeringArtifactPath` when provided, and read the Phase 1 JSON artifact before authoring. Do not add, remove, or relayer test points unless the revision instructions explicitly request it.
 
 Only API and UI/E2E test points produce `.feature` content. UI Component and UI Integration test points remain part of the approved test strategy, but they are lower-layer test points and must not be converted into Gherkin feature files by this skill.
 
@@ -266,22 +266,50 @@ Before returning output, verify:
 
 ## Output Contract
 
-Do not hand-write final Markdown tables. Produce structured JSON, then use the renderer script to create the review output.
+Do not create a Phase 2 intermediate artifact. Return the feature authoring result directly in the chat for user review.
 
-1. Write Phase 2 data to a temporary JSON file using the schema exposed by the renderer.
-2. Run:
+The returned Markdown is the approval payload. If the user approves it, `/writebddfeatures` will immediately write the `.feature` files from this output.
 
-   ```bash
-   python .claude/scripts/render_bdd_artifact.py phase2 {inputJsonPath} .ai-sdlc/workflow-state/{storyId}
-   ```
+Return this structure:
 
-3. Read `.ai-sdlc/workflow-state/{storyId}/bdd-feature-authoring.md`.
-4. Return that Markdown verbatim.
+````markdown
+# BDD Feature Generation Result
 
-Use this command if you need the exact field names:
+## Feature Files To Write
 
-```bash
-python .claude/scripts/render_bdd_artifact.py schema phase2
+- `{targetPath}` -> mode: create | append | not generated | N scenarios (@smoke: N, @regression: N)
+
+## Lower-Layer Test Points Not Authored As Feature Files
+
+- TP-UIC-001 [UI Component] Summary. Covers: AC1. Reason: component-level test.
+- TP-UII-001 [UI Integration] Summary. Covers: AC2. Reason: integration-level test.
+
+## API Feature Content
+
+```gherkin
+{complete API feature content for create mode; new Scenario/Scenario Outline blocks only for append mode; omit when API mode is not generated}
 ```
+
+## UI Feature Content
+
+```gherkin
+{complete UI feature content for create mode; new Scenario/Scenario Outline blocks only for append mode; omit when UI mode is not generated}
+```
+
+## AC Coverage Matrix
+
+- AC1 -> @TC-MOD-API-001, @TC-MOD-UI-001, TP-UIC-001
+
+## Uncovered ACs
+
+- None
+
+## Authoring Notes
+
+- API snippet catalog: path or not found
+- UI/E2E snippet catalog: path or not found
+- New/unmatched step wording: None or list
+- File mode decisions / assumptions: list
+````
 
 Do not include an approval menu. `writebddfeatures` owns approval.

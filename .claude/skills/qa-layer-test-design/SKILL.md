@@ -73,11 +73,7 @@ test-layer-analysis.json
 
 `test-layer-analysis.json` is the only Phase 1 source-of-truth artifact. Do not create a Markdown artifact for Phase 1.
 
-To inspect the expected JSON shape, run:
-
-```bash
-python .claude/scripts/render_bdd_artifact.py schema phase1
-```
+Include these fields in the JSON: `storyId`, `title`, `moduleOrDomain`, `primaryActor`, `source`, `revisionCount`, `artifactVersion`, `assumptions`, `acceptanceCriteria`, `testPoints`, `layeringRationale`, `coverageMatrix`, `uncoveredAcs`, `risksAndGaps`, `reviewHighlights`.
 
 On revision, increment `revisionCount` if an existing JSON artifact is available. If not available, set `revisionCount` to `1`.
 
@@ -215,35 +211,51 @@ Before returning output, verify:
 
 Produce structured JSON, save it with the renderer script, then return a short review summary directly in your response.
 
-1. Write Phase 1 data to a temporary JSON file using the schema exposed by the renderer.
+1. Write Phase 1 data to a temporary JSON file using the required fields above.
 2. Run:
 
    ```bash
    python .claude/scripts/render_bdd_artifact.py phase1 {inputJsonPath} .ai-sdlc/workflow-state/{storyId}
    ```
 
-3. Return a short review summary using this format:
+3. Return a review summary with the actual decisions the user must approve. Keep it concise, but include enough detail for approval without opening the JSON artifact.
 
    ```markdown
    # Test Layering Draft Summary
 
-   - JSON artifact: `.ai-sdlc/workflow-state/{storyId}/test-layer-analysis.json`
-   - API test points: N
-   - UI Component test points: N
-   - UI Integration test points: N
-   - UI/E2E test points: N
-   - Smoke test points: N
-   - Regression test points: N
-   - Uncovered ACs: N
+   Artifact: `.ai-sdlc/workflow-state/{storyId}/test-layer-analysis.json`
 
-   Review highlights:
-   - ...
+   ## Proposed Layering
+
+   API:
+   - TP-API-001 [smoke/positive] Summary here. Covers: AC1, AC2.
+
+   UI Component:
+   - TP-UIC-001 [regression/negative] Summary here. Covers: AC3.
+
+   UI Integration:
+   - TP-UII-001 [regression/permission] Summary here. Covers: AC4.
+
+   UI/E2E:
+   - TP-E2E-001 [smoke/positive] Summary here. Covers: AC1.
+
+   ## Approval Focus
+
+   - Layering decision to confirm: [specific cross-layer or downshift decision]
+   - Smoke scope to confirm: [specific smoke scenarios]
+   - Duplicate coverage intentionally avoided: [specific API vs UI/E2E split]
+
+   ## Assumptions / Risks
+
+   - [Assumption or risk that affects approval, or "None"]
+
+   ## Uncovered ACs
+
+   - [AC and reason, or "None"]
+
+   ## Suggested Action
+
+   Approve this layering plan, or revise specific TP IDs/layers/smoke scope.
    ```
-
-Use this command if you need the exact field names:
-
-```bash
-python .claude/scripts/render_bdd_artifact.py schema phase1
-```
 
 Do not include an approval menu. `writebddfeatures` owns approval.
