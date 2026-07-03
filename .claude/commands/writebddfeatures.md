@@ -80,14 +80,14 @@ Invoke **bdd-agent** for Phase 1 with this context and nothing else:
 phase: 1
 E2E_DIR: {resolved E2E_DIR}
 story: {already loaded story payload}
-goal: design layered test points from this user story and return the complete layering analysis for approval
+goal: design layered test points from this user story, save the Phase 1 artifact, and return a draft summary plus artifact paths for approval
 ```
 
 STOP: VERBATIM PASS-THROUGH - NO EXCEPTIONS:
 Copy the bdd-agent output exactly as received. Do NOT reformat, condense, summarize, reorder, or add any text before the approval prompt.
 If you find yourself rewriting any sentence, stop and paste the original.
 
-Display bdd-agent **Complete Output** to the user, followed by this command's approval prompt.
+Display bdd-agent **Complete Output** to the user, including the draft summary and local artifact path, followed by this command's approval prompt.
 
 Output the bdd-agent result as raw Markdown (no blockquote wrapping) so that tables render correctly.
 
@@ -97,7 +97,7 @@ Output the bdd-agent result as raw Markdown (no blockquote wrapping) so that tab
 - **stop** - Cancel this generation
 
 Wait for user response:
-- **approve** -> proceed to Step 3 with the confirmed Test Point List
+- **approve** -> proceed to Step 3 with the approved Phase 1 artifact path
 - **revise** -> re-invoke bdd-agent Phase 1 with this context:
 
   ```yaml
@@ -107,6 +107,7 @@ Wait for user response:
   goal: revise the complete layering analysis using the user's requested changes
   revisionInstructions: {user's exact instructions}
   previousOutput: {verbatim Phase 1 output just displayed}
+  previousArtifactPath: {Phase 1 artifact path, if available}
   ```
 
   Display the regenerated output verbatim; loop back to this approval prompt.
@@ -124,7 +125,8 @@ Invoke **bdd-agent** for Phase 2 with this context and nothing else:
 phase: 2
 E2E_DIR: {resolved E2E_DIR}
 story: {already loaded story payload}
-approvedTestPoints: {approved Phase 1 output or extracted Test Point List - verbatim from Step 2}
+layeringArtifactPath: {approved Phase 1 artifact path from Step 2}
+approvedTestPoints: {approved Phase 1 artifact content or extracted Test Point List, only if artifact path is unavailable}
 goal: author BDD feature content from the approved test points and return the complete feature authoring result for approval
 ```
 
@@ -147,7 +149,8 @@ Wait for user response:
   phase: 2
   E2E_DIR: {resolved E2E_DIR}
   story: {already loaded story payload}
-  approvedTestPoints: {approved Phase 1 output or extracted Test Point List - verbatim from Step 2}
+  layeringArtifactPath: {approved Phase 1 artifact path from Step 2}
+  approvedTestPoints: {approved Phase 1 artifact content or extracted Test Point List, only if artifact path is unavailable}
   goal: revise the complete BDD feature authoring result using the user's requested changes
   revisionInstructions: {user's exact instructions}
   previousOutput: {verbatim Phase 2 output just displayed}

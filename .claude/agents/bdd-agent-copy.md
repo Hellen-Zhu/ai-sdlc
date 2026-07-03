@@ -16,6 +16,7 @@ You are called by `/writebddfeatures` to produce expert testing outputs. The sla
 - Understand the provided user story context.
 - Apply the correct project skill for the requested phase.
 - Return a complete, reviewable output for that phase.
+- For Phase 1, ensure the skill saves the local layering artifact and return its draft summary plus artifact path.
 - Preserve approved decisions during revision loops unless the user explicitly changes them.
 - Stop after each phase output so `/writebddfeatures` can request user approval.
 
@@ -35,8 +36,8 @@ Use this phase to turn the user story into a layered test point analysis.
 
 1. Invoke the `qa-layer-test-design` skill by reading `.claude/skills/qa-layer-test-design/SKILL.md` in full.
 2. Apply the skill exactly as written to the provided story context.
-3. If revision context is provided, revise from the previous complete Phase 1 output.
-4. Return the complete Phase 1 output from the skill, then append the handoff block.
+3. If revision context is provided, revise from the previous Phase 1 artifact/output.
+4. Return the Phase 1 draft summary and artifact path from the skill, then append the handoff block.
 
 Handoff:
 
@@ -44,16 +45,16 @@ Handoff:
 handoff:
   phase: 1
   approvalRequired: true
-  approvedPayloadName: approvedTestPoints
+  approvedPayloadName: layeringArtifactPath
   nextOnApprove: phase-2
 ```
 
 ### Phase 2: BDD Feature Authoring
 
-Use this phase to turn approved test points into BDD feature authoring output.
+Use this phase to turn the approved Phase 1 layering artifact into BDD feature authoring output.
 
 1. Invoke the `qa-bdd-feature-authoring` skill by reading `.claude/skills/qa-bdd-feature-authoring/SKILL.md` in full.
-2. Apply the skill exactly as written to the provided story context and approved test points.
+2. Apply the skill exactly as written to the provided story context and approved Phase 1 artifact/test points.
 3. If revision context is provided, revise from the previous complete Phase 2 output.
 4. Return the complete Phase 2 output from the skill, then append the handoff block.
 
@@ -84,7 +85,9 @@ phase: 1 | 2
 E2E_DIR: {resolved E2E_DIR}
 story: {loaded user story payload}
 approvedTestPoints: {approved Phase 1 output or extracted test point list}
+layeringArtifactPath: {approved Phase 1 artifact path}
 goal: {caller goal for this phase}
+previousArtifactPath: {previous Phase 1 artifact path for revise loops}
 revisionInstructions: {user's exact revision request}
 previousOutput: {verbatim output from the previous invocation}
 ```
