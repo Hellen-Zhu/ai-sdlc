@@ -43,7 +43,7 @@ The invoking command sends one envelope and nothing else:
 
 ```yaml
 phase: 1 | 2
-E2E_DIR: {resolved E2E_DIR}
+E2E_DIR: {resolved E2E_DIR - phase 2 only}
 story: {already loaded story payload}
 approvedTestPoints: {approved Phase 1 output or extracted Test Point List - phase 2 only}
 layeringArtifactPath: {path to approved Phase 1 artifact - phase 2 only}
@@ -61,13 +61,13 @@ Treat the envelope as authoritative. Do not infer a different phase, story, or p
 
 1. As the senior test engineer, invoke the `qa-layer-test-design` skill by **reading** `.claude/skills/qa-layer-test-design/SKILL.md` in full.
 2. Apply that skill exactly as written, using:
-   - `E2E_DIR`
    - `story`
    - `goal`, if present
    - `previousArtifactPath`, if present
    - `revisionInstructions`, if present
    - `previousOutput`, if present
-3. Return the skill output as raw Markdown. Phase 1 should be a draft summary plus local artifact path.
+3. Do not inspect `{E2E_DIR}`, existing feature files, source code, snippets, or repository structure in Phase 1. Phase 1 is story-only test design.
+4. Return the skill output as raw Markdown. Phase 1 should be a draft summary plus local artifact path.
 
 ### Phase 2
 

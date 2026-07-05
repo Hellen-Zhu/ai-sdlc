@@ -1,6 +1,6 @@
 ---
 name: qa-layer-test-design
-description: Design layered API, UI component, UI integration, and UI/E2E test points from a user story, acceptance criteria, and business rules. Use in BDD Phase 1 before feature authoring to produce an approval-ready test point list and coverage matrix.
+description: Design layered API, UI component, UI integration, and UI/E2E test points from a user story, acceptance criteria, and business rules without inspecting the implementation repository. Use in BDD Phase 1 before feature authoring to produce an approval-ready test point list and coverage matrix.
 ---
 
 # QA Layer Test Design
@@ -9,19 +9,39 @@ description: Design layered API, UI component, UI integration, and UI/E2E test p
 
 Turn one user story into a reviewable layered test design that identifies what should be covered at API level, UI component level, UI integration level, and UI/E2E level, and what should not be duplicated across layers.
 
-This skill produces test points only. It saves the Phase 1 draft artifact locally for review and Phase 2 input. It does not write Gherkin feature files and does not ask the user for approval.
+This skill produces test points only from the story context. It saves the Phase 1 draft artifact locally for review and Phase 2 input. It does not inspect the E2E project, write Gherkin feature files, choose feature file paths, evaluate snippet reuse, or ask the user for approval.
 
 ## Inputs
 
 Use the context provided by `bdd-agent`:
 
-- `E2E_DIR`
 - `story`
 - `previousArtifactPath`, if present
 - `revisionInstructions`, if present
 - `previousOutput`, if present
 
 Treat the story payload as authoritative. If fields are missing, infer conservatively from acceptance criteria and clearly list assumptions.
+
+## Design-Only Boundary
+
+Phase 1 is intentionally implementation-agnostic.
+
+Do not:
+
+- resolve, validate, or inspect `{E2E_DIR}`
+- run `Glob`, `Grep`, `Search`, `find`, or shell discovery against the E2E repository
+- list source files, feature files, snippets, YAML data, page objects, components, or generated classes
+- choose target `.feature` file paths or file modes
+- infer reuse from existing implementation artifacts
+
+Allowed file activity:
+
+- read the provided story payload
+- read `previousArtifactPath` during a revision
+- write the local Phase 1 JSON artifact under `.ai-sdlc/workflow-state/{storyId}/`
+- run `.claude/scripts/render_bdd_artifact.py` only to render/save the Phase 1 artifact
+
+All decisions in this skill must be justified by acceptance criteria, business rules, story metadata, assumptions, and general testing judgment. Existing code and feature reuse are Phase 2 concerns.
 
 ## Fresh Run
 
@@ -197,6 +217,7 @@ Do not invent acceptance criteria. If an implied rule matters, label it as an as
 
 Before returning output, verify:
 
+- no repository scan or E2E directory inspection was performed
 - every TP maps to at least one AC or explicit assumption
 - every AC appears in the coverage matrix
 - no UI/E2E test duplicates API, component, or integration coverage without a user-journey reason

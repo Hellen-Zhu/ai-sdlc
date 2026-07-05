@@ -4,12 +4,12 @@ description: Read ADO User Stories, delegate BDD planning/authoring to bdd-agent
 
 # Write BDD Feature Files
 
-**Sub-project paths:** Resolve `{E2E_DIR}` from root `CLAUDE.md` -> `# Repos` table before running any shell commands or constructing file paths. Check the `Optional` column - **skip all steps for any sub-project marked `Optional: Yes` that does not exist on disk**. Pass resolved values and optional flags when invoking sub-agents. Defaults: `be-app`, `fe-app`, `e2e-test`.
+**Sub-project paths:** Resolve `{E2E_DIR}` lazily. Phase 1 test layering is design-only and must not inspect or validate the E2E project directory. Resolve `{E2E_DIR}` from root `CLAUDE.md` -> `# Repos` table only after Phase 1 is approved and before Phase 2 feature authoring. Check the `Optional` column at that point - **skip Phase 2+ for any E2E sub-project marked `Optional: Yes` that does not exist on disk**. Defaults: `be-app`, `fe-app`, `e2e-test`.
 
 You are orchestrating BDD feature file generation for `{ADO_DISPLAY_NAME}` User Stories.
 Delegate BDD analysis and feature authoring to **bdd-agent**, a senior BDD test engineer agent. This command owns all user approval gates and all final file writes.
 
-> WARNING: **This command requires `{E2E_DIR}`.** If `{E2E_DIR}` is `Optional: Yes` in CLAUDE.md and does not exist on disk, stop and output:
+> WARNING: **Phase 2+ requires `{E2E_DIR}`.** If `{E2E_DIR}` is `Optional: Yes` in CLAUDE.md and does not exist on disk after Phase 1 approval, stop and output:
 > "E2E tests directory not present - /writebddfeatures skipped."
 
 ## Input
@@ -46,6 +46,8 @@ Run this again? (yes/no)
 
 Use **ado-agent** (`FETCH_STORY`) for each story ID.
 
+Do not ask **ado-agent** to validate `{E2E_DIR}`, search the E2E repository, list project files, or inspect existing feature files during Step 1. Step 1 loads story/workflow context only.
+
 If the fetched story `bddFeatureFiles` is non-empty, warn and **WAIT**:
 
 ```text
@@ -72,13 +74,14 @@ This command must not read, invoke, summarize, or inspect `.claude/skills/*` dir
 
 ## Step 2 - Test Layering Analysis + Approval
 
-STOP: AGENT INVOCATION ONLY - Pass ONLY the structured context below to **bdd-agent**. Do NOT add extra skill instructions, phase descriptions, output format requirements, module tag hints, or any other text.
+STOP: DESIGN-ONLY AGENT INVOCATION - Pass ONLY the structured context below to **bdd-agent**. Do NOT add extra skill instructions, phase descriptions, output format requirements, module tag hints, E2E paths, or any other text.
+
+Phase 1 must not resolve `{E2E_DIR}`, validate directories, run shell discovery commands, inspect existing feature files, generate snippet catalogs, or scan source code. It designs layered test points from the loaded story only.
 
 Invoke **bdd-agent** for Phase 1 with this context and nothing else:
 
 ```yaml
 phase: 1
-E2E_DIR: {resolved E2E_DIR}
 story: {already loaded story payload}
 goal: design layered test points from this user story, save the Phase 1 JSON artifact, and return an approval-ready review summary with proposed test points, layer decisions, assumptions, risks, and artifact path
 ```
@@ -102,7 +105,6 @@ Wait for user response:
 
   ```yaml
   phase: 1
-  E2E_DIR: {resolved E2E_DIR}
   story: {already loaded story payload}
   goal: revise the complete layering analysis using the user's requested changes
   revisionInstructions: {user's exact instructions}
@@ -116,6 +118,16 @@ Wait for user response:
 ---
 
 ## Step 3 - BDD Feature Authoring + Approval
+
+Before invoking **bdd-agent** for Phase 2, resolve `{E2E_DIR}` from root `CLAUDE.md` -> `# Repos` table and verify the E2E directory only once.
+
+If `{E2E_DIR}` is optional and missing, stop with:
+
+```text
+E2E tests directory not present - /writebddfeatures skipped.
+```
+
+Phase 2 is the first phase allowed to inspect existing feature files, generate/read snippet catalogs, and decide whether to create or append feature files.
 
 STOP: AGENT INVOCATION ONLY - Pass ONLY the structured context below to **bdd-agent**. Do NOT add extra skill instructions, phase descriptions, output format requirements, or any other text.
 
