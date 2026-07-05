@@ -165,11 +165,13 @@ Wait for user response:
 
 Use only the approved Phase 2 output from **bdd-agent**. Ignore the handoff block when writing files.
 
-Extract the gherkin content from the approved Phase 2 output.
+Prefer the `feature_write_plan` fenced block when present. It is not a persisted artifact; it is the deterministic write payload embedded in the approved Phase 2 response.
+
+If `feature_write_plan` is absent, extract the gherkin content from the approved Phase 2 output.
 
 Determine the target paths:
-- Use the feature file paths reported in the approved Phase 2 output.
-- Use the file modes reported in the approved Phase 2 output.
+- Use the feature file paths reported in `feature_write_plan`, or in the approved Phase 2 output when the write plan is absent.
+- Use the file modes reported in `feature_write_plan`, or in the approved Phase 2 output when the write plan is absent.
 - Do not re-derive feature names, domains, or target paths in the orchestrator.
 - If a feature file has zero scenarios or `mode: not generated`, do not create a file for that layer.
 

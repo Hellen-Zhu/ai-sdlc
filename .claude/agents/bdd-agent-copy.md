@@ -64,7 +64,7 @@ Handoff:
 handoff:
   phase: 2
   approvalRequired: true
-  approvedPayloadName: approvedFeatureContent
+  approvedPayloadName: feature_write_plan
   nextOnApprove: write-feature-files
 ```
 

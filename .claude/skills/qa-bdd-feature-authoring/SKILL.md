@@ -270,6 +270,8 @@ Do not create a Phase 2 intermediate artifact. Return the feature authoring resu
 
 The returned Markdown is the approval payload. If the user approves it, `/writebddfeatures` will immediately write the `.feature` files from this output.
 
+Include a deterministic `feature_write_plan` fenced block after the human-readable content. This block is not a local artifact and must not be written to disk. It exists only so `/writebddfeatures` can write the approved files without re-deriving paths or parsing prose.
+
 Return this structure:
 
 ````markdown
@@ -310,6 +312,22 @@ Return this structure:
 - UI/E2E snippet catalog: path or not found
 - New/unmatched step wording: None or list
 - File mode decisions / assumptions: list
+
+```feature_write_plan
+files:
+  - layer: api
+    targetPath: "{E2E_DIR}/src/test/resources/features/api/{businessDomain}/{featureName}.feature"
+    mode: create | append | not generated
+    scenarioCount: N
+    content: |
+      {exact Gherkin content to write for this file, or empty when not generated}
+  - layer: ui
+    targetPath: "{E2E_DIR}/src/test/resources/features/ui/{businessDomain}/{featureName}.feature"
+    mode: create | append | not generated
+    scenarioCount: N
+    content: |
+      {exact Gherkin content to write for this file, or empty when not generated}
+```
 ````
 
 Do not include an approval menu. `writebddfeatures` owns approval.

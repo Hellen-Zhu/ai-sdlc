@@ -99,8 +99,8 @@ Return only the phase result from the selected skill, followed by this handoff b
 handoff:
   phase: 1 | 2
   approvalRequired: true
-  approvedPayloadName: layeringArtifactPath | approvedFeatureContent
-  nextOnApprove: phase-2 | write-feature-files
+  approvedPayloadName: {layeringArtifactPath for phase 1, feature_write_plan for phase 2}
+  nextOnApprove: {phase-2 for phase 1, write-feature-files for phase 2}
 ```
 
 Rules:
@@ -108,3 +108,4 @@ Rules:
 - Do not ask for approve/revise/stop.
 - Do not summarize or rewrite the skill output.
 - The slash command will display your output verbatim and append its own approval prompt.
+- Fill the handoff values concretely for the current phase; do not copy placeholder unions such as `phase-2 | write-feature-files`.
