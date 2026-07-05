@@ -1,6 +1,6 @@
 ---
 name: qa-e2e-test-authoring
-description: Implement SC Genie UI E2E automation artifacts from approved @playwright BDD feature files using the four-layer UI E2E architecture: feature scenario steps, flow layer, page/component layer, and locator/data artifacts. Use when e2e-test-agent receives a UI feature file and must create or update business flows, page/component operations, locators, YAML UI data, snippets, Java glue, and an authoring report without running tests.
+description: Implement SC Genie UI E2E automation artifacts from approved @playwright BDD feature files using the four-layer UI E2E architecture: feature scenario steps, flow layer, page/component layer, and locator/data artifacts. Use when e2e-test-agent receives a UI feature file and must create or update business flows, page/component operations, locators, YAML UI data, snippets, Java glue, run non-executing validation, and return an authoring report without executing real tests.
 ---
 
 # QA E2E Test Authoring
@@ -9,7 +9,7 @@ description: Implement SC Genie UI E2E automation artifacts from approved @playw
 
 Turn an approved `@playwright` `.feature` file into maintainable SC Genie UI E2E test artifacts that respect the project's four-layer UI E2E architecture.
 
-This skill writes implementation files only. It does not run tests, update ADO, or ask for user approval.
+This skill writes implementation files and runs non-executing validation only. It does not execute real tests, update ADO, or ask for user approval.
 
 ## Inputs
 
@@ -48,7 +48,9 @@ For each UI feature file:
    - element locator JSON or equivalent locator artifacts
    - YAML UI data and expected visible outcomes
 9. Do not change the `.feature` file unless a broken tag or impossible step prevents implementation; if so, report it instead of silently rewriting.
-10. Return an output report.
+10. Run non-executing validation: compile check plus Cucumber dry-run for the authored TC tags.
+11. If validation fails, repair the authored artifacts inside this skill and re-run validation.
+12. Return an output report only after validation passes or the internal validation repair loop is exhausted.
 
 ## Four-Layer Architecture
 
@@ -96,6 +98,65 @@ Never call page/component methods directly from scenario glue when a flow method
 - Factor shared page/component locators instead of duplicating selector definitions.
 - Avoid hard-coded environment data, credentials, or timing sleeps.
 
+## Non-Executing Validation
+
+Run validation after authoring artifacts and before returning the report. These checks are allowed because they do not execute scenario bodies.
+
+1. **Compile check**
+
+   Prefer:
+
+   ```bash
+   cd {E2E_DIR} && mvn test-compile
+   ```
+
+   If the project convention requires Maven test phase compilation instead, use:
+
+   ```bash
+   cd {E2E_DIR} && mvn test -DskipTests
+   ```
+
+2. **Cucumber dry-run**
+
+   Build the tag expression from the authored `@TC-*` tags. Prefer TC tags over broad `@playwright` scope.
+
+   ```bash
+   cd {E2E_DIR} && mvn test -Dcucumber.options="--dry-run --tags {tagExpression}"
+   ```
+
+   The dry-run must verify feature syntax and step definition binding without launching the real UI journey.
+
+If compile or dry-run fails, repair the authored artifacts inside this skill before returning. Do not hand validation failures to `/codetestcases` until you have attempted the internal repair loop.
+
+## Internal Validation Repair Loop
+
+Use this loop for compile errors, feature syntax errors, undefined steps, ambiguous steps, missing glue, broken imports, type errors, missing YAML references, locator/data path mismatches, layer-boundary violations found during validation, and dry-run binding failures.
+
+1. Capture the failing command and relevant error output.
+2. Classify the failure:
+   - feature syntax
+   - undefined or ambiguous step
+   - Java compile error
+   - missing or invalid YAML/data file
+   - package/import/path mismatch
+   - scenario-to-flow binding mismatch
+   - flow-to-page/component binding mismatch
+   - locator or page/component artifact mismatch
+   - project setup issue outside the authored files
+3. Repair only files owned by this authoring task.
+4. Preserve the four-layer architecture while repairing.
+5. Re-run compile check and dry-run.
+6. Repeat until both validations pass or `validationRepairAttempts` reaches `3`.
+
+Rules:
+
+- Do not broaden tag scope while repairing. Keep validating the authored TC tags.
+- Do not change business meaning or approved TC tags to make validation pass.
+- Do not delete scenarios, bypass flow methods, call page/component methods directly from scenario glue, or skip steps to hide a failure.
+- Do not move locators or low-level UI operations into scenario glue or flow.
+- If the failure is caused by an external project setup issue, stop after confirming it is outside the authored files and report it as a blocker.
+- If repair attempts are exhausted, return `file_status: blocked` and include the final failure output plus attempted fixes.
+
 ## Quality Checks
 
 Before returning:
@@ -109,7 +170,10 @@ Before returning:
 - YAML paths are under the project UI data convention
 - TC IDs are included in the report
 - no API-only behavior was implemented as UI artifacts unless the feature explicitly requires an end-to-end journey
-- no tests were executed by this skill
+- compile validation was run or explicitly skipped with a reason
+- Cucumber dry-run was run or explicitly skipped with a reason
+- validation failures were repaired internally when possible
+- no real tests were executed by this skill
 
 ## Output Contract
 
@@ -144,9 +208,21 @@ Feature file: `{featureFile}`
 
 - @TC-MOD-UI-001 - implemented | blocked - notes
 
+## Non-Executing Validation
+
+- Compile check: passed | failed | skipped
+- Compile command: `{command or N/A}`
+- Dry-run: passed | failed | skipped
+- Dry-run command: `{command or N/A}`
+- Undefined steps: None or list
+- Feature syntax errors: None or list
+- Repair attempts: N
+- Repaired issues: None or list
+- Final validation status: passed | failed | skipped
+
 ## Blockers / Follow-up
 
-- None, or specific blocker with file/scenario reference
+- None, or specific blocker after internal validation repair attempts are exhausted
 
 ## Orchestrator Addendum
 
@@ -154,4 +230,5 @@ Feature file: `{featureFile}`
 - testTypeTag: @playwright
 - tc_ids: [@TC-...]
 - file_status: created | updated | mixed | blocked
+- validation_status: passed | failed | skipped
 ```
