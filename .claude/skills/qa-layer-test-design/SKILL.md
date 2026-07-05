@@ -38,8 +38,7 @@ Allowed file activity:
 
 - read the provided story payload
 - read `previousArtifactPath` during a revision
-- write the local Phase 1 JSON artifact under `.ai-sdlc/workflow-state/{storyId}/`
-- run `.claude/scripts/render_bdd_artifact.py` only to render/save the Phase 1 artifact
+- write the readable Phase 1 JSON artifact directly to `.ai-sdlc/workflow-state/{storyId}/test-layer-analysis.json`
 
 All decisions in this skill must be justified by acceptance criteria, business rules, story metadata, assumptions, and general testing judgment. Existing code and feature reuse are Phase 2 concerns.
 
@@ -93,7 +92,88 @@ test-layer-analysis.json
 
 `test-layer-analysis.json` is the only Phase 1 source-of-truth artifact. Do not create a Markdown artifact for Phase 1.
 
-Include these fields in the JSON: `storyId`, `title`, `moduleOrDomain`, `primaryActor`, `source`, `revisionCount`, `artifactVersion`, `assumptions`, `acceptanceCriteria`, `testPoints`, `layeringRationale`, `coverageMatrix`, `uncoveredAcs`, `risksAndGaps`, `reviewHighlights`.
+Use the JSON template below exactly. Do not add new top-level fields. If a value is unknown, use an empty string, empty array, or an explicit assumption instead of inventing a different field.
+
+```json
+{
+  "artifactVersion": "1.0",
+  "storyId": "",
+  "title": "",
+  "moduleOrDomain": "",
+  "primaryActor": "",
+  "source": {
+    "mode": "ado|json",
+    "reference": "",
+    "loadedAt": ""
+  },
+  "revisionCount": 0,
+  "acceptanceCriteria": [
+    {
+      "id": "AC1",
+      "text": "",
+      "sourceReference": ""
+    }
+  ],
+  "assumptions": [
+    {
+      "id": "AS-001",
+      "text": "",
+      "affects": ["TP-API-001"]
+    }
+  ],
+  "testPoints": [
+    {
+      "id": "TP-API-001",
+      "layer": "API|UI Component|UI Integration|UI/E2E",
+      "summary": "",
+      "type": "positive|negative|edge|permission|regression",
+      "priority": "smoke|regression",
+      "tags": ["@api", "@smoke"],
+      "covers": ["AC1"],
+      "preconditions": [],
+      "testDataNeeds": [],
+      "expectedOutcome": "",
+      "rationale": "",
+      "duplicateCoverageAvoided": "",
+      "status": "proposed"
+    }
+  ],
+  "layeringRationale": [
+    {
+      "testPointId": "TP-API-001",
+      "selectedLayer": "API",
+      "reason": "",
+      "notCoveredAtHigherLayerBecause": ""
+    }
+  ],
+  "coverageMatrix": [
+    {
+      "acId": "AC1",
+      "coveredBy": ["TP-API-001"],
+      "coverageNotes": ""
+    }
+  ],
+  "uncoveredAcs": [
+    {
+      "acId": "AC2",
+      "reason": ""
+    }
+  ],
+  "risksAndGaps": [
+    {
+      "id": "RISK-001",
+      "text": "",
+      "mitigation": ""
+    }
+  ],
+  "reviewHighlights": {
+    "layeringDecisionsToConfirm": [],
+    "smokeScopeToConfirm": [],
+    "duplicateCoverageAvoided": [],
+    "openQuestions": []
+  }
+}
+```
 
 On revision, increment `revisionCount` if an existing JSON artifact is available. If not available, set `revisionCount` to `1`.
 
@@ -230,14 +310,22 @@ Before returning output, verify:
 
 ## Output Contract
 
-Produce structured JSON, save it with the renderer script, then return a short review summary directly in your response.
+Produce structured JSON, write it directly to `test-layer-analysis.json`, then return a short review summary directly in your response.
 
-1. Write Phase 1 data to a temporary JSON file using the required fields above.
-2. Run:
+1. Use **Write** to create or overwrite:
 
-   ```bash
-   python .claude/scripts/render_bdd_artifact.py phase1 {inputJsonPath} .ai-sdlc/workflow-state/{storyId}
+   ```text
+   .ai-sdlc/workflow-state/{storyId}/test-layer-analysis.json
    ```
+
+2. The file content must be valid JSON:
+   - UTF-8
+   - 2-space indentation
+   - no Markdown code fence
+   - no comments
+   - no extra files
+   - same top-level fields as the template
+   - no additional top-level fields
 
 3. Return a review summary with the actual decisions the user must approve. Keep it concise, but include enough detail for approval without opening the JSON artifact.
 

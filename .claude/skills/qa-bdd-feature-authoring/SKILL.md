@@ -163,18 +163,18 @@ Read the relevant catalog(s) before writing Gherkin.
 
 ### Reuse Policy
 
-Prefer existing snippets over new step wording.
+Prefer existing snippets over new step wording only when the snippet wording is already business-readable.
 
 For each intended Given/When/Then step:
 
 1. Search the relevant layer catalog first:
    - API scenarios use the API snippet catalog.
    - UI/E2E scenarios use the UI/E2E snippet catalog.
-2. Reuse an existing snippet when its business meaning matches the intended step.
+2. Reuse an existing snippet when its business meaning matches the intended step and its wording does not expose implementation details.
 3. Adapt only parameter values, quoted text, identifiers, and examples.
 4. Preserve snippet wording, tense, and placeholder style as much as possible.
 5. Do not create a semantically duplicate step with different wording.
-6. Create new wording only when no suitable snippet exists.
+6. Create new business wording when no suitable business-readable snippet exists, even if technical snippets exist for the same underlying automation.
 
 When creating new wording:
 
@@ -196,6 +196,8 @@ In `Authoring Notes`, include:
 
 Write business-readable Gherkin.
 
+Feature files are executable specifications for business behavior. They are not API documentation, HTTP contract tests, UI automation scripts, or implementation traces. Scenario text must be understandable by product, QA, and engineering reviewers without knowing endpoint paths, payload structure, page object names, or automation code.
+
 Use:
 
 - `Feature:` for create mode
@@ -216,14 +218,14 @@ Each generated scenario should include:
 Avoid:
 
 - CSS selectors, data-testid, button coordinates, or component names
-- implementation class names or endpoint internals unless API-level business wording requires an API action
+- implementation class names, endpoint internals, HTTP methods, URL paths, query strings, request/response payload names, JSON fields, schema names, status codes, database tables, service/client names, queue/topic names, or generated class names
 - excessive UI click-by-click scripting
 - vague steps such as "Then it works"
 - unapproved scenarios
 
 ## API Scenario Guidance
 
-API scenarios should focus on business behavior at the service boundary:
+API scenarios should focus on business behavior at the service boundary while still using business language:
 
 - valid request succeeds and persists expected state
 - invalid request is rejected with business-meaningful error
@@ -231,7 +233,17 @@ API scenarios should focus on business behavior at the service boundary:
 - status transition rules are enforced
 - duplicate or idempotent action behaves correctly
 
-Use business API language, for example:
+API feature text may use an `@api` tag, but the scenario steps must read like business operations. Do not expose transport or contract details in Gherkin.
+
+Do not write steps like:
+
+```gherkin
+When I POST to "/api/v1/trades" with payload "validTrade.json"
+Then the response status code is 200
+And the JSON response field "trade.status" is "PENDING_APPROVAL"
+```
+
+Write business-language equivalents:
 
 ```gherkin
 Given an eligible trade exists for approval
@@ -239,6 +251,8 @@ When the maker submits the trade for approval
 Then the trade status is Pending Approval
 And the submission is recorded for audit
 ```
+
+If existing API snippets are technical, do not copy their technical wording into the feature file. Author the scenario in business language and note in `Authoring Notes` that implementation will need to map the business step to existing technical snippets or create a business wrapper step.
 
 ## UI/E2E Scenario Guidance
 
@@ -282,6 +296,7 @@ Before returning output, verify:
 - Gherkin is business-readable
 - no unapproved test points were added
 - AC coverage matrix is consistent with approved test points
+- API scenarios use business language and do not expose HTTP, endpoint, payload, schema, status-code, database, or service implementation details
 
 ## Output Contract
 

@@ -30,7 +30,7 @@ Detect the input mode from what the user provides:
 
 Use **Read** to get full content for the user story.
 
-If `lastCompletedStage` >= `"writebddfeatures"`, warn and **WAIT**:
+If `lastCompletedStage` is `"writebddfeatures.completed"` or `bddFeatureFiles` is non-empty, warn and **WAIT**:
 
 ```text
 WARNING: BDD feature files already generated for #[story-id]: [bddFeatureFiles joined by ", "]
@@ -38,7 +38,22 @@ Run this again? (yes/no)
 ```
 
 - `"no"` -> exit.
-- `"yes"` -> proceed to Step 3.
+- `"yes"` -> start over at Step 2.
+
+If `lastCompletedStage` is `"writebddfeatures.phase1.approved"` and `bddLayeringArtifact` exists on disk, offer resume:
+
+```text
+Found approved Phase 1 layering artifact for #[story-id]:
+[bddLayeringArtifact]
+
+Resume BDD feature authoring from Phase 2? (yes / rerun phase1 / stop)
+```
+
+- `"yes"` -> proceed directly to Step 3 using `bddLayeringArtifact`.
+- `"rerun phase1"` -> proceed to Step 2.
+- `"stop"` -> exit.
+
+If `lastCompletedStage` is `"writebddfeatures.phase1.approved"` but `bddLayeringArtifact` is missing or not readable, warn that the checkpoint is incomplete and proceed to Step 2.
 
 ---
 
@@ -56,7 +71,22 @@ Run this again? (yes/no)
 ```
 
 - `"no"` -> exit.
-- `"yes"` -> proceed to Step 3.
+- `"yes"` -> start over at Step 2.
+
+If the fetched story/workflow state has `lastCompletedStage: "writebddfeatures.phase1.approved"` and `bddLayeringArtifact` exists on disk, offer resume:
+
+```text
+Found approved Phase 1 layering artifact for #[story-id]:
+[bddLayeringArtifact]
+
+Resume BDD feature authoring from Phase 2? (yes / rerun phase1 / stop)
+```
+
+- `"yes"` -> proceed directly to Step 3 using `bddLayeringArtifact`.
+- `"rerun phase1"` -> proceed to Step 2.
+- `"stop"` -> exit.
+
+If the checkpoint exists in workflow state but the artifact is missing or not readable, warn that Phase 1 cannot be resumed and proceed to Step 2.
 
 ---
 
@@ -100,7 +130,7 @@ Output the bdd-agent result as raw Markdown (no blockquote wrapping) so that tab
 - **stop** - Cancel this generation
 
 Wait for user response:
-- **approve** -> proceed to Step 3 with the approved Phase 1 artifact path
+- **approve** -> save a Phase 1 checkpoint, then proceed to Step 3 with the approved Phase 1 artifact path
 - **revise** -> re-invoke bdd-agent Phase 1 with this context:
 
   ```yaml
@@ -114,6 +144,21 @@ Wait for user response:
 
   Display the regenerated output verbatim; loop back to this approval prompt.
 - **stop** -> end pipeline: `"Pipeline terminated."`
+
+### Phase 1 Checkpoint
+
+Immediately after Phase 1 approval and before resolving `{E2E_DIR}`, save a resumable checkpoint.
+
+**If ADO mode:** use **ado-agent** (`SAVE`) to update:
+
+- `lastCompletedStage`: `"writebddfeatures.phase1.approved"`
+- `bddLayeringArtifact`: `{approved Phase 1 artifact path}`
+- `bddLayeringApprovedAt`: `{current timestamp}`
+- `bddFeatureFiles`: keep existing value, do not overwrite
+
+**If JSON file mode:** use **Edit** to update the source JSON file with the same fields.
+
+Do not add `bdd-ready` tags and do not update `bddFeatureFiles` at this checkpoint. Those belong only after feature files are written.
 
 ---
 
@@ -137,7 +182,7 @@ Invoke **bdd-agent** for Phase 2 with this context and nothing else:
 phase: 2
 E2E_DIR: {resolved E2E_DIR}
 story: {already loaded story payload}
-layeringArtifactPath: {approved Phase 1 artifact path from Step 2}
+layeringArtifactPath: {approved Phase 1 artifact path from Step 2, or bddLayeringArtifact when resuming}
 approvedTestPoints: {approved Phase 1 artifact content or extracted Test Point List, only if artifact path is unavailable}
 goal: author BDD feature content from the approved test points and return the complete feature authoring result for approval
 ```
@@ -161,7 +206,7 @@ Wait for user response:
   phase: 2
   E2E_DIR: {resolved E2E_DIR}
   story: {already loaded story payload}
-  layeringArtifactPath: {approved Phase 1 artifact path from Step 2}
+  layeringArtifactPath: {approved Phase 1 artifact path from Step 2, or bddLayeringArtifact when resuming}
   approvedTestPoints: {approved Phase 1 artifact content or extracted Test Point List, only if artifact path is unavailable}
   goal: revise the complete BDD feature authoring result using the user's requested changes
   revisionInstructions: {user's exact instructions}
@@ -215,11 +260,11 @@ Use the approved Phase 2 coverage matrix and written file list from Step 4.
 
 Use **ado-agent** (`UPDATE_TAGS`) to add `bdd-ready` to `System.Tags`.
 
-Use **ado-agent** (`SAVE`): `lastCompletedStage: "writebddfeatures"`, `branch`, `module`, `bddFeatureFiles` (append all newly written file paths to existing array - do not overwrite), `bddType`, `tcTags`.
+Use **ado-agent** (`SAVE`): `lastCompletedStage: "writebddfeatures.completed"`, `branch`, `module`, `bddFeatureFiles` (append all newly written file paths to existing array - do not overwrite), `bddType`, `tcTags`, keep `bddLayeringArtifact`.
 
 **If JSON file mode:**
 
-Use **Edit** to update the source JSON file: `lastCompletedStage: "writebddfeatures"`, `bddFeatureFiles` (read current array value, append all newly written file paths, write back - do not overwrite), `bddType`, `tcTags`.
+Use **Edit** to update the source JSON file: `lastCompletedStage: "writebddfeatures.completed"`, `bddFeatureFiles` (read current array value, append all newly written file paths, write back - do not overwrite), `bddType`, `tcTags`, keep `bddLayeringArtifact`.
 
 ---
 
